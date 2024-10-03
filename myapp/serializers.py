@@ -40,8 +40,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['username', 'password', 'email', 'full_name']
       
-    
-class LoginUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ['email', 'password']
+
+class TokenObtainPairSerializer(serializers.Serializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        token['username'] = user.username
+        token['email'] = user.email
+        
+        return token

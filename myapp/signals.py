@@ -5,8 +5,11 @@ from django.core.mail import send_mail
 from datetime import timedelta
 import datetime
 from django.conf import settings
+from django import dispatch
 
-@receiver(user_logged_in)
+login_signal = dispatch.Signal(['request', 'user'])
+
+@receiver(login_signal)
 def log_user_login(sender, request, user, **kwargs):
     user = request.user
     today = datetime.date.today()

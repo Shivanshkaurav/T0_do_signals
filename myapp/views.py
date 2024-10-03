@@ -6,11 +6,10 @@ from rest_framework.views import APIView
 from .models import *
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from .throttles import AnonRateThrottles, SustainedRateThrottle
-from django.contrib.auth.signals import user_logged_in
+from .signals import login_signal
 
 class TodoView(ListAPIView):
     serializer_class = TodoSerializer
@@ -18,20 +17,7 @@ class TodoView(ListAPIView):
 
 class RegisterUserView(CreateAPIView):
     serializer_class = RegisterUserSerializer
-    permission_classes = [AllowAny]
-    
-class LoginUserView(APIView):
-    serializer_class = LoginUserSerializer
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
-    throttle_classes = [AnonRateThrottles, SustainedRateThrottle]
-    
-    def post(self, request):
-        user = authenticate(email = request.data['email'], password = request.data.get('password'))
-        if user:
-            user_logged_in.send(sender=user.__class__, request=request, user=user)
-            return Response({"Success": "Successfully logged in"}, status=status.HTTP_200_OK)
-        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)   
+    permission_classes = [AllowAny]  
 
 class ListTasksView(APIView):
     permission_classes = [IsAuthenticated]
@@ -45,6 +31,7 @@ class ListTasksView(APIView):
         todo = Todo.objects.filter(user=user)
         serializer = TodoSerializer(todo, many=True)
         data = serializer.data
+        login_signal.send(sender=user,request=request, user=user)
         return Response({"data": data}, status=status.HTTP_200_OK)   
 
 class CreateTaskView(CreateAPIView):
